@@ -1,0 +1,47 @@
+apiVersion: api/v1
+kind: Job
+metadata:
+  name: rsync-template
+parameters:
+- name: SOURCE_PVC
+  displayName: Source PersistentVolumeClaim
+  description: Name of PVC to read data 
+  required: true
+- name: DEST_PVC
+  displayName: Destination PersistentVolumeClaim
+  description: Name of the PVC to write data
+  required: true
+- name: RSYNC_IMAGE
+  displayName: Rsync Image Name 
+  description: Name of Image to use for running rsync process
+  value: docker-registry.default.svc:5000/openshift/rsync
+  required: true
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: pi
+  spec:
+    parallelism: 1    
+    completions: 1    
+    template:         
+      metadata:
+        name: rsync
+      spec:
+        containers:
+        - name: rsync
+          image: ${RSYNC_IMAGE}
+          volumeMounts:
+          - name: source
+            mountPath: /srcd
+          - name: destination
+            mountPath: /dest
+        restartPolicy: OnFailure 
+        volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: ${SOURCE_PVC}
+        - name: destination
+          persistentVolumeClaim:
+            claimName: ${DEST_PVC}
+
