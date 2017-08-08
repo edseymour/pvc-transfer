@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Template
+metadata: {}
+parameters:
+- name: GITURI
+  displayName: Git URI
+  description: location of source-code
+  required: true
+  value: https://github.com/edseymour/pvc-transfer.git
+- description: Webhook secret used to in webhook build triggers
+  displayName: Webhook Secret
+  from: '[a-zA-Z0-9]{8}'
+  generate: expression
+  name: WEBHOOK_SECRET
+  required: true
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: rsync
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: rsync
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: rsync:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      contextDir: docker
+      git:
+        uri: ${GIRURI}
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: centos:7
+          namespace: openshift
+      type: Docker
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - github:
+        secret: ${WEBHOOK_SECRET}
+      type: GitHub
+    - generic:
+        secret:${WEBHOOK_SECRET} 
+      type: Generic
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
